@@ -1,17 +1,20 @@
 from dotenv import load_dotenv
-import requests
 import os
 import pandas as pd
+import function
+
 
 load_dotenv()  # take environment variables from .env.
 
-API_KEY = (os.getenv('youtube_key'))
 
-CHANNELID = "UCCezIgC97PvUuR4_gbFUs5g"
+API_KEY = os.getenv('youtube_key')
 
-param = {'key': API_KEY,
-         'channelId': CHANNELID,
-         'part':'snippet'}
+channelId = "UCCezIgC97PvUuR4_gbFUs5g"
+# channelId = "UCJoG46MzkLfd_yTTEApw5fA"
 
-response = requests.get('https://www.googleapis.com/youtube/v3/search', params=param).json()
-print(response)
+
+df = pd.DataFrame(columns=['video_id','channelTitle','publish_date','title','description','liveBroadcastContent'])
+
+data = function.get_vidoes(df, API_KEY,channelId)
+
+print(data)
