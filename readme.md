@@ -1,3 +1,3 @@
-# Welcome To our First Class Project
+# Welcome
 
 This is the youtube channel analysis project
