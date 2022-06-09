@@ -1,4 +1,4 @@
-import requests
+import requests, pandas as pd
 import time
 from tqdm import tqdm
 
@@ -23,18 +23,20 @@ def get_vidoes_per_page(url,params,df):
 
 
             # Save data in pandas dataframe
-            df = df.append({
-                'video_id':video_id,
-                'channelTitle':channelTitle,
-                'publish_date':publish_date,
-                'title':title,
-                'description':description,
-                'liveBroadcastContent':liveBroadcastContent,
-                'duration':duration,
-                'viewCount':viewCount,
-                'likeCount':likeCount,
-                'commentCount':commentCount
-            }, ignore_index=True)
+            df1 = pd.DataFrame({
+                'video_id':[video_id],
+                'channelTitle':[channelTitle],
+                'publish_date':[publish_date],
+                'title':[title],
+                'description':[description],
+                'liveBroadcastContent':[liveBroadcastContent],
+                'duration':[duration],
+                'viewCount':[viewCount],
+                'likeCount':[likeCount],
+                'commentCount':[commentCount]
+            })
+
+            df = pd.concat([df, df1], ignore_index=True)
     return (nextPageToken,df)
 
 def get_vidoes(df,API_KEY,channelId):
