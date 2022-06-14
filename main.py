@@ -2,13 +2,18 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 import function
-import requests
+# import requests
+import db_service
 
 
 load_dotenv()  # take environment variables from .env.
 
 
 API_KEY = os.getenv('youtube_key')
+host = os.getenv('host')
+port = os.getenv('db_port')
+username = os.getenv('db_username')
+password = os.getenv('db_password')
 
 channelId = "UCCezIgC97PvUuR4_gbFUs5g"
 # channelId = "UCJoG46MzkLfd_yTTEApw5fA"
@@ -24,4 +29,12 @@ except Exception as e:
 else:
     print('Data loaded Successfully')
 
-print(data)
+conn = db_service.connect_to_db(host,port,username,password)
+
+db_service.create_table(conn)
+
+for i, row in data.iterrows():
+    if db_service.check_if_video_exists(conn,row['video_id']):
+        db_service.update_vid(conn,row['video_id'],row['title'], row['description'],row['duration'],row['publish_date'],row['viewCount'],row['likeCount'],row['commentCount'],row['liveBroadcastContent'])
+    else:
+        db_service.insert_vid(conn,row['video_id'],row['title'], row['description'],row['duration'],row['publish_date'],row['viewCount'],row['likeCount'],row['commentCount'],row['liveBroadcastContent'])
