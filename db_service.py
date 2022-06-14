@@ -1,4 +1,3 @@
-from matplotlib.pyplot import table
 import psycopg2 as ps
 
 # Connect to your postgres DB

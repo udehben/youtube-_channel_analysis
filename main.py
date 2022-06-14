@@ -2,8 +2,8 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 import function
-# import requests
 import db_service
+from tqdm import tqdm
 
 
 load_dotenv()  # take environment variables from .env.
@@ -33,7 +33,7 @@ conn = db_service.connect_to_db(host,port,username,password)
 
 db_service.create_table(conn)
 
-for i, row in data.iterrows():
+for i, row in tqdm(data.iterrows()):
     if db_service.check_if_video_exists(conn,row['video_id']):
         db_service.update_vid(conn,row['video_id'],row['title'], row['description'],row['duration'],row['publish_date'],row['viewCount'],row['likeCount'],row['commentCount'],row['liveBroadcastContent'])
     else:
