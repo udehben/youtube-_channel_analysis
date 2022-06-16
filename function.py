@@ -1,72 +1,56 @@
 import requests, pandas as pd
-import time
 from tqdm import tqdm
 
-
-def get_vidoes_per_page(url,params,df):
-    resp = requests.get(url,params=params).json()
-    # Wait 1 sec to be sure all request have been made
-    time.sleep(1)
-
-    nextPageToken = resp.get('nextPageToken',None)
-    for video in tqdm(resp["items"]):
-        if video["id"]["kind"] == "youtube#video":
-            video_id = video["id"]['videoId']
-            publish_date = video["snippet"]["publishedAt"].split('T')[0]
-            title = video["snippet"]["title"]
-            description = video["snippet"]["description"]
-            channelTitle = video["snippet"]["channelTitle"]
-            liveBroadcastContent = video["snippet"]["liveBroadcastContent"]
-
-            #get single vidoe data
-            duration,viewCount,likeCount,commentCount = get_single_vidoe_detais(video_id,params['key'])
-
-
-            # Save data in pandas dataframe
-            df1 = pd.DataFrame({
-                'video_id':[video_id],
-                'channelTitle':[channelTitle],
-                'publish_date':[publish_date],
-                'title':[title],
-                'description':[description],
-                'liveBroadcastContent':[liveBroadcastContent],
-                'duration':[duration],
-                'viewCount':[viewCount],
-                'likeCount':[likeCount],
-                'commentCount':[commentCount]
-            })
-
-            df = pd.concat([df, df1], ignore_index=True)
-    return (nextPageToken,df)
-
-def get_vidoes(df,API_KEY,channelId):
+def get_video_ids(api_key, channelId):
+    video_ids = []
     url = 'https://www.googleapis.com/youtube/v3/search'
-    param = {'key': API_KEY,
+    param = {'key': api_key,
              'channelId': channelId,
              'part':'snippet',
              'maxResults':50,
              'order':'date'}
-    nextPageToken, df = get_vidoes_per_page(url,param,df)
-    idx = 0
-    while (nextPageToken is not None and idx < 10):
-        param['pageToken'] = nextPageToken
-        nextPageToken, df = get_vidoes_per_page(url,param,df)
-        idx +=1
-    return(df)
+    resp = requests.get(url,param).json()
+    for item in resp['items']:
+        if item['id']['kind'] == 'youtube#video':
+            video_ids.append(item['id']['videoId'])
+    num_request = 1
+    page_token = resp.get('nextPageToken',None)
+    while (page_token is not None and num_request < 10):
+        param['pageToken'] = page_token
+        resp = requests.get(url,param).json()
+        for item in resp['items']:
+            if item['id']['kind'] == 'youtube#video':
+                video_ids.append(item['id']['videoId'])
+        page_token = resp.get('nextPageToken',None)
+        num_request += 1
+    return video_ids
 
-def get_single_vidoe_detais(vid_id,API_KEY):
-    url = 'https://www.googleapis.com/youtube/v3/videos'
-    part = ['contentDetails','statistics']
-    for p in part:
-        param = {'key': API_KEY,
-                'id': vid_id,
-                'part':p
-                }
+
+def get_video_details(api_key, video_ids):
+    all_vid_info = []
+    for i in tqdm(range(0,len(video_ids),50)):
+        url = 'https://www.googleapis.com/youtube/v3/videos'
+        part = 'contentDetails','statistics','snippet'
+        vid_id = ','.join(video_ids[i:i+50])
+        param = {
+            'key':api_key,
+            'part':part,
+            'id':vid_id
+        }
         resp = requests.get(url,params=param).json()
-        if p == 'contentDetails':
-            duration = resp['items'][0]['contentDetails']['duration'].strip('PT')
-        else:
-            viewCount = resp['items'][0]['statistics']['viewCount']
-            likeCount = resp['items'][0]['statistics']['likeCount']
-            commentCount = resp['items'][0]['statistics']['commentCount']
-    return(duration,viewCount,likeCount,commentCount)
+        for video in resp['items']:
+
+            vid_info = {}
+            vid_info['video_id'] = video["id"]
+            vid_info['publishedAt'] = video["snippet"]["publishedAt"]
+            vid_info['title'] = video["snippet"]["title"]
+            vid_info['description'] = video["snippet"]["description"]
+            vid_info['channelTitle'] = video["snippet"]["channelTitle"]
+            vid_info['tags'] = video["snippet"]["tags"]
+            vid_info['viewCount'] = video["statistics"]["viewCount"]
+            vid_info['likeCount'] = video["statistics"]["likeCount"]
+            vid_info['commentCount'] = video["statistics"]["commentCount"]
+            vid_info['duration'] = video["contentDetails"]["duration"]
+
+            all_vid_info.append(vid_info)
+    return pd.DataFrame(all_vid_info)
